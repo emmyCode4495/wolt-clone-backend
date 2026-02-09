@@ -1,0 +1,36 @@
+# Node modules (ignore everywhere)
+node_modules/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/
+
+# TypeScript
+*.tsbuildinfo
+
+# Docker override files (optional)
+docker-compose.override.yml
+
+# Coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# Mac
+.DS_Store
