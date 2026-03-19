@@ -28,6 +28,8 @@ export enum CuisineType {
   VEGETARIAN = 'vegetarian',
   DESSERT = 'dessert',
   COFFEE = 'coffee',
+  AFRICAN = 'african',
+  LOCAL = 'local',
   OTHER = 'other',
 }
 

@@ -1,3 +1,5 @@
+
+
 import { Router } from 'express';
 import { MenuItemController } from '../controllers/menu_item.controller';
 import { ValidationMiddleware } from '../middleware/validation.middleware';
@@ -5,10 +7,45 @@ import { AuthMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Extract user info
 router.use(AuthMiddleware.extractUser);
 
-// Menu items for a restaurant
+// ═══════════════════════════════════════════════
+// ADMIN ROUTES  —  /admin/...
+// ═══════════════════════════════════════════════
+
+router.get(
+  '/admin/menu-items',
+  AuthMiddleware.requireAdmin,
+  MenuItemController.adminGetAllMenuItems
+);
+
+router.get(
+  '/admin/menu-items/stats',
+  AuthMiddleware.requireAdmin,
+  MenuItemController.adminGetMenuStats
+);
+
+router.patch(
+  '/admin/menu-items/:id/status',
+  AuthMiddleware.requireAdmin,
+  ValidationMiddleware.mongoIdValidation('id'),
+  ValidationMiddleware.handleValidationErrors,
+  MenuItemController.adminSetMenuItemStatus
+);
+
+// Admin can also hard-delete any menu item
+router.delete(
+  '/admin/menu-items/:id',
+  AuthMiddleware.requireAdmin,
+  ValidationMiddleware.mongoIdValidation('id'),
+  ValidationMiddleware.handleValidationErrors,
+  MenuItemController.deleteMenuItem
+);
+
+// ═══════════════════════════════════════════════
+// PUBLIC / OWNER ROUTES
+// ═══════════════════════════════════════════════
+
 router.post(
   '/restaurants/:restaurantId/menu-items',
   AuthMiddleware.requireAuth,
@@ -17,17 +54,9 @@ router.post(
   MenuItemController.createMenuItem
 );
 
-router.get(
-  '/restaurants/:restaurantId/menu-items',
-  MenuItemController.getMenuItems
-);
+router.get('/restaurants/:restaurantId/menu-items', MenuItemController.getMenuItems);
+router.get('/restaurants/:restaurantId/menu-items/popular', MenuItemController.getPopularItems);
 
-router.get(
-  '/restaurants/:restaurantId/menu-items/popular',
-  MenuItemController.getPopularItems
-);
-
-// Individual menu item operations
 router.get('/menu-items/:id', MenuItemController.getMenuItemById);
 
 router.put(

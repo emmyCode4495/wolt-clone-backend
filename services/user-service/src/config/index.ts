@@ -10,7 +10,7 @@ export const config = {
   
   // Database
   mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/wolt-user-service',
-  
+   adminSecret: process.env.ADMIN_SECRET || '', // Add this line
   // JWT
   jwtSecret: process.env.JWT_SECRET!,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN as SignOptions["expiresIn"], 

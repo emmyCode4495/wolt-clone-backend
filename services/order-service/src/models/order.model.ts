@@ -65,28 +65,28 @@ export interface IOrder extends Document {
   customerId: Types.ObjectId;
   restaurantId: Types.ObjectId;
   items: IOrderItem[];
-  
+
   // Pricing
   subtotal: number;
   deliveryFee: number;
   tax: number;
   discount: number;
   total: number;
-  
+
   // Delivery
   deliveryType: DeliveryType;
   deliveryAddress?: IDeliveryAddress;
   driverId?: Types.ObjectId;
-  
+
   // Status
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   paymentMethod: PaymentMethod;
-  
+
   // Notes
   customerNotes?: string;
   restaurantNotes?: string;
-  
+
   // Timestamps
   estimatedDeliveryTime?: Date;
   confirmedAt?: Date;
@@ -96,7 +96,7 @@ export interface IOrder extends Document {
   deliveredAt?: Date;
   cancelledAt?: Date;
   cancellationReason?: string;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -150,12 +150,20 @@ const deliveryAddressSchema = new Schema<IDeliveryAddress>({
   instructions: String,
 });
 
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+const generateOrderNumber = (): string =>
+  `ORD-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+
+// ─── Schema ───────────────────────────────────────────────────────────────────
+
 const orderSchema = new Schema<IOrder>(
   {
     orderNumber: {
       type: String,
-      required: true,
       unique: true,
+      // Auto-generated via default — no required:true so validation never blocks it
+      default: generateOrderNumber,
     },
     customerId: {
       type: Schema.Types.ObjectId,
@@ -242,20 +250,25 @@ const orderSchema = new Schema<IOrder>(
   }
 );
 
-// Indexes
+// ─── Indexes ──────────────────────────────────────────────────────────────────
+
 orderSchema.index({ orderNumber: 1 });
 orderSchema.index({ customerId: 1, createdAt: -1 });
 orderSchema.index({ restaurantId: 1, status: 1 });
 orderSchema.index({ driverId: 1, status: 1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
-// Generate order number before saving
-orderSchema.pre('save', async function (next) {
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
+// Fallback: ensure orderNumber is always set before validation runs
+// (covers edge cases where default doesn't fire, e.g. raw insertMany)
+orderSchema.pre('validate', function (next) {
   if (!this.orderNumber) {
-    const count = await mongoose.model('Order').countDocuments();
-    this.orderNumber = `ORD-${Date.now()}-${count + 1}`;
+    this.orderNumber = generateOrderNumber();
   }
   next();
 });
+
+// ─── Model ────────────────────────────────────────────────────────────────────
 
 export const Order = mongoose.model<IOrder>('Order', orderSchema);

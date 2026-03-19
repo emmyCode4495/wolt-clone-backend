@@ -1,3 +1,6 @@
+
+
+
 import { Router } from 'express';
 import { CategoryController } from '../controllers/category.controller';
 import { ValidationMiddleware } from '../middleware/validation.middleware';
@@ -5,10 +8,39 @@ import { AuthMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Extract user info
 router.use(AuthMiddleware.extractUser);
 
-// Categories for a restaurant
+// ═══════════════════════════════════════════════
+// ADMIN ROUTES  —  /admin/...
+// ═══════════════════════════════════════════════
+
+router.get(
+  '/admin/categories',
+  AuthMiddleware.requireAdmin,
+  CategoryController.adminGetAllCategories
+);
+
+router.patch(
+  '/admin/categories/:id/toggle-active',
+  AuthMiddleware.requireAdmin,
+  ValidationMiddleware.mongoIdValidation('id'),
+  ValidationMiddleware.handleValidationErrors,
+  CategoryController.adminToggleCategoryActive
+);
+
+// Admin can force-delete a category (bypasses item-count guard — use with care)
+router.delete(
+  '/admin/categories/:id',
+  AuthMiddleware.requireAdmin,
+  ValidationMiddleware.mongoIdValidation('id'),
+  ValidationMiddleware.handleValidationErrors,
+  CategoryController.deleteCategory
+);
+
+// ═══════════════════════════════════════════════
+// PUBLIC / OWNER ROUTES
+// ═══════════════════════════════════════════════
+
 router.post(
   '/restaurants/:restaurantId/categories',
   AuthMiddleware.requireAuth,
@@ -17,10 +49,7 @@ router.post(
   CategoryController.createCategory
 );
 
-router.get(
-  '/restaurants/:restaurantId/categories',
-  CategoryController.getCategories
-);
+router.get('/restaurants/:restaurantId/categories', CategoryController.getCategories);
 
 router.post(
   '/restaurants/:restaurantId/categories/reorder',
@@ -28,7 +57,6 @@ router.post(
   CategoryController.reorderCategories
 );
 
-// Individual category operations
 router.get('/categories/:id', CategoryController.getCategoryById);
 
 router.put(

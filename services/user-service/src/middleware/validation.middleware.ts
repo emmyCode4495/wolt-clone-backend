@@ -1,3 +1,5 @@
+
+
 // import { Request, Response, NextFunction } from 'express';
 // import { body, param, validationResult, ValidationChain } from 'express-validator';
 
@@ -180,6 +182,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { body, param, validationResult, ValidationChain } from 'express-validator';
+import { UserStatus } from '../models/user.model';
 
 export class ValidationMiddleware {
   /**
@@ -191,7 +194,6 @@ export class ValidationMiddleware {
     next: NextFunction
   ): void {
     const errors = validationResult(req);
-
     if (!errors.isEmpty()) {
       res.status(400).json({
         success: false,
@@ -203,13 +205,13 @@ export class ValidationMiddleware {
       });
       return;
     }
-
     next();
   }
 
-  /**
-   * Registration validation rules
-   */
+  // ─────────────────────────────────────────────
+  // Auth Validations
+  // ─────────────────────────────────────────────
+
   static registerValidation(): ValidationChain[] {
     return [
       body('email')
@@ -220,7 +222,9 @@ export class ValidationMiddleware {
         .isLength({ min: 6 })
         .withMessage('Password must be at least 6 characters long')
         .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-        .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+        .withMessage(
+          'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+        ),
       body('firstName')
         .trim()
         .notEmpty()
@@ -242,28 +246,74 @@ export class ValidationMiddleware {
       body('role')
         .optional()
         .isIn(['customer', 'driver', 'restaurant_owner'])
-        .withMessage('Invalid role'),
+        .withMessage('Invalid role — admin accounts cannot be self-registered'),
     ];
   }
 
-  /**
-   * Login validation rules
-   */
   static loginValidation(): ValidationChain[] {
     return [
       body('email')
         .isEmail()
         .withMessage('Please provide a valid email')
         .normalizeEmail(),
-      body('password')
-        .notEmpty()
-        .withMessage('Password is required'),
+      body('password').notEmpty().withMessage('Password is required'),
     ];
   }
 
   /**
-   * Update profile validation rules
+   * Admin login validation — same fields, separate endpoint for clarity
    */
+  static adminLoginValidation(): ValidationChain[] {
+    return [
+      body('email')
+        .isEmail()
+        .withMessage('Please provide a valid email')
+        .normalizeEmail(),
+      body('password').notEmpty().withMessage('Password is required'),
+    ];
+  }
+
+  /**
+   * Create admin validation — stricter password + all fields required
+   */
+  static createAdminValidation(): ValidationChain[] {
+    return [
+      body('email')
+        .isEmail()
+        .withMessage('Please provide a valid email')
+        .normalizeEmail(),
+      body('password')
+        .isLength({ min: 8 })
+        .withMessage('Admin password must be at least 8 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()\-_=+])/)
+        .withMessage(
+          'Admin password must contain uppercase, lowercase, number, and special character'
+        ),
+      body('firstName')
+        .trim()
+        .notEmpty()
+        .withMessage('First name is required')
+        .isLength({ min: 2, max: 50 })
+        .withMessage('First name must be between 2 and 50 characters'),
+      body('lastName')
+        .trim()
+        .notEmpty()
+        .withMessage('Last name is required')
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Last name must be between 2 and 50 characters'),
+      body('phone')
+        .trim()
+        .notEmpty()
+        .withMessage('Phone number is required')
+        .matches(/^\+?[1-9]\d{1,14}$/)
+        .withMessage('Please provide a valid phone number'),
+    ];
+  }
+
+  // ─────────────────────────────────────────────
+  // Profile Validations
+  // ─────────────────────────────────────────────
+
   static updateProfileValidation(): ValidationChain[] {
     return [
       body('firstName')
@@ -284,27 +334,31 @@ export class ValidationMiddleware {
     ];
   }
 
-  /**
-   * Add address validation rules
-   */
+  static changePasswordValidation(): ValidationChain[] {
+    return [
+      body('currentPassword')
+        .notEmpty()
+        .withMessage('Current password is required'),
+      body('newPassword')
+        .isLength({ min: 6 })
+        .withMessage('New password must be at least 6 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage(
+          'New password must contain at least one uppercase letter, one lowercase letter, and one number'
+        ),
+    ];
+  }
+
+  // ─────────────────────────────────────────────
+  // Address Validations
+  // ─────────────────────────────────────────────
+
   static addAddressValidation(): ValidationChain[] {
     return [
-      body('street')
-        .trim()
-        .notEmpty()
-        .withMessage('Street is required'),
-      body('city')
-        .trim()
-        .notEmpty()
-        .withMessage('City is required'),
-      body('state')
-        .trim()
-        .notEmpty()
-        .withMessage('State is required'),
-      body('zipCode')
-        .trim()
-        .notEmpty()
-        .withMessage('ZIP code is required'),
+      body('street').trim().notEmpty().withMessage('Street is required'),
+      body('city').trim().notEmpty().withMessage('City is required'),
+      body('state').trim().notEmpty().withMessage('State is required'),
+      body('zipCode').trim().notEmpty().withMessage('ZIP code is required'),
       body('country')
         .optional()
         .trim()
@@ -330,30 +384,27 @@ export class ValidationMiddleware {
     ];
   }
 
-  /**
-   * Change password validation rules
-   */
-  static changePasswordValidation(): ValidationChain[] {
+  // ─────────────────────────────────────────────
+  // Admin Validations
+  // ─────────────────────────────────────────────
+
+  static updateUserStatusValidation(): ValidationChain[] {
     return [
-      body('currentPassword')
+      body('status')
         .notEmpty()
-        .withMessage('Current password is required'),
-      body('newPassword')
-        .isLength({ min: 6 })
-        .withMessage('New password must be at least 6 characters long')
-        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-        .withMessage('New password must contain at least one uppercase letter, one lowercase letter, and one number'),
+        .withMessage('Status is required')
+        .isIn(Object.values(UserStatus))
+        .withMessage(`Status must be one of: ${Object.values(UserStatus).join(', ')}`),
     ];
   }
 
-  /**
-   * MongoDB ID validation
-   */
+  // ─────────────────────────────────────────────
+  // Param Validations
+  // ─────────────────────────────────────────────
+
   static mongoIdValidation(paramName: string = 'id'): ValidationChain[] {
     return [
-      param(paramName)
-        .isMongoId()
-        .withMessage('Invalid ID format'),
+      param(paramName).isMongoId().withMessage('Invalid ID format'),
     ];
   }
 }
