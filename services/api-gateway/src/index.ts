@@ -71,6 +71,7 @@ class APIGateway {
           storeCategories: '/api/store-categories/*',
           // Catalog service
           catalog:      '/api/catalog/products/* | /api/catalog/categories/*',
+
         },
       });
     });
@@ -186,6 +187,8 @@ class APIGateway {
       (req, res) => ProxyMiddleware.forwardRequest(config.catalogServiceUrl, req, res)
     );
 
+     this.app.use('/api/ai', aiRouter);
+     
     // ────────────────────────────────────────────────────────────────────────
     // Fallbacks
     // ────────────────────────────────────────────────────────────────────────
@@ -199,7 +202,7 @@ class APIGateway {
       res.status(500).json({ success: false, message: 'Internal server error' });
     });
 
-    this.app.use('/api/ai', aiRouter);
+   
   }
 
   public start(): void {
