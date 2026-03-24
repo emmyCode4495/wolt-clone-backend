@@ -39,7 +39,7 @@ router.post('/ask', async (req: Request, res: Response) => {
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'llama3-70b-8192',
+          model: 'llama-3.3-70b-versatile',
           messages: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: systemPrompt },
